@@ -23,6 +23,8 @@ namespace Imagensita
 
         int BonnieDangerLvl = 0, ChicaDangerLvl = 0;
 
+        double Bateria = 100.0, ConsumoDePoder = 0.0;
+
         public Form1()
         {
             InitializeComponent();
@@ -36,6 +38,8 @@ namespace Imagensita
             Tick.Tick += Tick_Tick;
             Tick.Tick -= Tick_Tick;
             Tick.Start();
+
+            Puertas.Interval = 100;
 
             ChanceMovimientoBonnie = random.Next(1, 6);
             ChanceMovimientoChica = random.Next(1, 6);
@@ -85,20 +89,7 @@ namespace Imagensita
                 {
                     if (!isLeftDoorClosed)
                     {
-                        lblHora.Text = "Te culearon";
-
-                        Tick.Stop();
-                        Hora.Stop();
-
-                        var temporizadorCerrar = new System.Windows.Forms.Timer();
-                        temporizadorCerrar.Interval = 3000;
-                        temporizadorCerrar.Tick += (s, ev) =>
-                        {
-                            temporizadorCerrar.Stop();
-                            Close();
-                        };
-
-                        temporizadorCerrar.Start();
+                        GamerOverScreen();
                     }
 
                     BonnieDangerLvl = 0;
@@ -116,26 +107,25 @@ namespace Imagensita
                 {
                     if (!isRightDoorClosed)
                     {
-                        lblHora.Text = "Te culearon";
-
-                        Tick.Stop();
-                        Hora.Stop();
-
-                        var temporizadorCerrar = new System.Windows.Forms.Timer();
-                        temporizadorCerrar.Interval = 3000;
-                        temporizadorCerrar.Tick += (s, ev) =>
-                        {
-                            temporizadorCerrar.Stop();
-                            Close();
-                        };
-
-                        temporizadorCerrar.Start();
+                        GamerOverScreen();
                     }
 
                     ChicaDangerLvl = 0;
                 }
 
                 if (Actividad < 2) return;
+            }
+        }
+
+        private void Puertas_Tick(object sender, EventArgs e)
+        {
+            Bateria -= ConsumoDePoder;
+
+            lblEnergia.Text = ((int)Math.Round(Bateria)).ToString() + "%";
+
+            if (Bateria <= 0)
+            {
+                GamerOverScreen();
             }
         }
 
@@ -146,11 +136,16 @@ namespace Imagensita
                 isLeftDoorClosed = true;
                 btnLPuerta.Text = "Cerrado";
 
+                ConsumoDePoder += 0.1;
+                RelojConsumoDePoder();
+
                 return;
             }
 
             isLeftDoorClosed = false;
             btnLPuerta.Text = "Abierto";
+
+            ConsumoDePoder -= 0.1;
         }
 
         private void btnRPuerta_Click(object sender, EventArgs e)
@@ -160,11 +155,51 @@ namespace Imagensita
                 isRightDoorClosed = true;
                 btnRPuerta.Text = "Cerrado";
 
+                ConsumoDePoder += 0.1;
+                RelojConsumoDePoder();
+
                 return;
             }
 
             isRightDoorClosed = false;
             btnRPuerta.Text = "Abierto";
+
+            ConsumoDePoder -= 0.1;
         }
+
+        private void Puertas_Tick1(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void GamerOverScreen()
+        {
+            lblHora.Text = "Te culearon";
+
+            Tick.Stop();
+            Hora.Stop();
+            Puertas.Stop();
+
+            pbxTenedor.Visible = true;
+            pbxScreamer.Visible = true;
+
+            var temporizadorCerrar = new System.Windows.Forms.Timer();
+            temporizadorCerrar.Interval = 3000;
+            temporizadorCerrar.Tick += (s, ev) =>
+            {
+                temporizadorCerrar.Stop();
+                Close();
+            };
+
+            temporizadorCerrar.Start();
+        }
+
+        private void RelojConsumoDePoder()
+        {
+            Puertas.Tick -= Puertas_Tick;
+            Puertas.Tick += Puertas_Tick;
+            Puertas.Start();
+        }
+
     }
 }
