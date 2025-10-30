@@ -23,7 +23,7 @@ namespace Imagensita
 
         int BonnieDangerLvl = 0, ChicaDangerLvl = 0;
 
-        double Bateria = 100.0, ConsumoDePoder = 0.0;
+        double Bateria = 100.0, ConsumoDePoder = 0.0, ConsumoPorPuerta = 0.2;
 
         public Form1()
         {
@@ -39,7 +39,8 @@ namespace Imagensita
             Tick.Tick -= Tick_Tick;
             Tick.Start();
 
-            Puertas.Interval = 100;
+            RelojConsumoDePoder();
+            Puertas.Interval = 1000;
 
             ChanceMovimientoBonnie = random.Next(1, 6);
             ChanceMovimientoChica = random.Next(1, 6);
@@ -52,20 +53,7 @@ namespace Imagensita
             lblHora.Text = Actividad.ToString() + "am";
         }
 
-        private bool Bonnie(ref int num)
-        {
-            if (num >= 5)
-            {
-                num = random.Next(1, 6);
-                return true;
-            }
-
-            num++;
-            return false;
-
-        }
-
-        private bool Chica(ref int num)
+        private bool MoveChance(ref int num)
         {
             if (num >= 5)
             {
@@ -80,31 +68,36 @@ namespace Imagensita
 
         private void Tick_Tick(object sender, EventArgs e)
         {
-            if (Bonnie(ref ChanceMovimientoBonnie))
+            if (MoveChance(ref ChanceMovimientoBonnie))
             {
                 BonnieDangerLvl++;
                 lblBonnieDangerLvl.Text = BonnieDangerLvl.ToString();
 
                 if (BonnieDangerLvl == 6)
                 {
+                    Temporizador(3);
+
                     if (!isLeftDoorClosed)
                     {
                         GamerOverScreen();
                     }
 
-                    BonnieDangerLvl = 0;
+                    BonnieDangerLvl = 1;
+                    lblBonnieDangerLvl.Text = BonnieDangerLvl.ToString();
                 }
             }
 
             if (Actividad < 1) return;
 
-            if (Chica(ref ChanceMovimientoChica))
+            if (MoveChance(ref ChanceMovimientoChica))
             {
                 ChicaDangerLvl++;
                 lblChicaDangerLvl.Text = ChicaDangerLvl.ToString();
 
                 if (ChicaDangerLvl == 6)
                 {
+                    Temporizador(2);
+
                     if (!isRightDoorClosed)
                     {
                         GamerOverScreen();
@@ -121,7 +114,8 @@ namespace Imagensita
         {
             Bateria -= ConsumoDePoder;
 
-            lblEnergia.Text = ((int)Math.Round(Bateria)).ToString() + "%";
+            Bateria = Math.Max(0.0, Math.Min(100.0, Bateria)); // clamp
+            lblEnergia.Text = $"{Bateria:F0}%";
 
             if (Bateria <= 0)
             {
@@ -129,52 +123,32 @@ namespace Imagensita
             }
         }
 
-        private void btnLPuerta_Click(object sender, EventArgs e)
+        private void ToggleDoor(bool isLeft)
         {
-            if (!isLeftDoorClosed)
-            {
-                isLeftDoorClosed = true;
-                btnLPuerta.Text = "Cerrado";
+            bool closed = isLeft ? isLeftDoorClosed : isRightDoorClosed;
 
-                ConsumoDePoder += 0.1;
-                RelojConsumoDePoder();
+            if (!closed)
+            {
+                if (isLeft) { isLeftDoorClosed = true; btnLPuerta.Text = "Cerrado"; }
+                else { isRightDoorClosed = true; btnRPuerta.Text = "Cerrado"; }
+
+                ConsumoDePoder += ConsumoPorPuerta;
 
                 return;
             }
 
-            isLeftDoorClosed = false;
-            btnLPuerta.Text = "Abierto";
+            if (isLeft) { isLeftDoorClosed = false; btnLPuerta.Text = "Abierto"; }
+            else { isRightDoorClosed = false; btnRPuerta.Text = "Abierto"; }
 
-            ConsumoDePoder -= 0.1;
+            ConsumoDePoder -= ConsumoPorPuerta;
         }
 
-        private void btnRPuerta_Click(object sender, EventArgs e)
-        {
-            if (!isRightDoorClosed)
-            {
-                isRightDoorClosed = true;
-                btnRPuerta.Text = "Cerrado";
-
-                ConsumoDePoder += 0.1;
-                RelojConsumoDePoder();
-
-                return;
-            }
-
-            isRightDoorClosed = false;
-            btnRPuerta.Text = "Abierto";
-
-            ConsumoDePoder -= 0.1;
-        }
-
-        private void Puertas_Tick1(object sender, EventArgs e)
-        {
-            throw new NotImplementedException();
-        }
+        private void btnLPuerta_Click(object sender, EventArgs e) => ToggleDoor(true);
+        private void btnRPuerta_Click(object sender, EventArgs e) => ToggleDoor(false);
 
         private void GamerOverScreen()
         {
-            lblHora.Text = "Te culearon";
+            lblHora.Text = "Perdiste";
 
             Tick.Stop();
             Hora.Stop();
@@ -201,5 +175,15 @@ namespace Imagensita
             Puertas.Start();
         }
 
+        private void Temporizador(int num)
+        {
+            var temporizador = new System.Windows.Forms.Timer();
+            temporizador.Interval = num * 1000;
+            temporizador.Tick += (s, ev) =>
+            {
+                temporizador.Stop();
+            };
+            temporizador.Start();
+        }
     }
 }
